@@ -5,7 +5,7 @@ test_name: GET POST AND DELETE request for api/users'
 stages:
   - name: Make sure GET request gives object when requested users with 200 status
     request:
-      url: http://localhost:5000/api/users
+      url: http://0.0.0.0:5000/api/users
 
       method: GET
       headers:
@@ -19,6 +19,7 @@ stages:
   - name: POST a json object to userlist get 200 status
     request:
       url: http://localhost:5000/api/users
+
       method: POST
 
       json:

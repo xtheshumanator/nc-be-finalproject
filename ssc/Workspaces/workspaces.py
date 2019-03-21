@@ -147,7 +147,7 @@ def create_workspace_only(data):
         add_user_to_workspace([admin_id], new_workspace_id, True)
 
     except (Exception, psycopg2.Error) as error:
-        print('Error while conecting to PostgresQL', error)
+        print('Error while connecting to PostgresQL', error)
         return False
     finally:
 
@@ -227,7 +227,7 @@ def add_user_to_workspace(list_of_ids, workspace_id, is_admin=False):
                 count += cursor.rowcount
 
     except (Exception, psycopg2.Error) as error:
-        print('Error while conecting to PostgresQL', error)
+        print('Error while connecting to PostgresQL', error)
         return 0
     finally:
         if (connection):
