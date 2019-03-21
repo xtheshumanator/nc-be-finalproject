@@ -144,4 +144,6 @@ def insert_user_invite(invite_json):
             if (count == 0): return False
             return True
         else:
+
             return False
+
