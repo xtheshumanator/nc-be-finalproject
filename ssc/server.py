@@ -21,6 +21,7 @@ app = Flask(__name__, template_folder='testflask/templates')
 def homeDummy():
     return 'Hello'
 
+
 @app.route("/encryptFile", methods=['POST'])
 def post_encrypted_file():
     return encrypt_file(request.files['file'])
@@ -30,10 +31,7 @@ def post_encrypted_file():
 def download_decrypted_file():
     return decrypt_file(request.json)
 
-@app.route("/decryptFile", methods=['GET'])
-def download_decrypted_file():
-    return decrypt_file(request.json)
-  
+
 @app.route('/api/login', methods=['GET'])
 def login():
     username = request.json['username']
@@ -94,6 +92,7 @@ def delete_user():
     else:
         return res_json, 204
 
+
 @app.route("/api/invites", methods=["POST"])
 def invite_user():
     if (not request.json) | ('username' not in request.json) \
@@ -129,6 +128,7 @@ def update_invite(username):
         return res_json, 404
     else:
         return res_json, 201
+
 
 @app.route('/api/workspaces', methods=['POST'])
 def handle_create_workspace():
@@ -171,7 +171,6 @@ def get_workspace_file(name):
         return res_json, 200
 
 
-
 @app.route("/api/workspaces/<workspace_name>", methods=["PUT"])
 def handle_update_workspace(workspace_name):
     if (not request.json) | ('username' not in request.json) \
@@ -185,7 +184,8 @@ def handle_update_workspace(workspace_name):
     else:
         return res_json, 201
 
+
 if __name__ == "__main__":
     # app.run(debug=True)
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 9090))
     app.run(host='0.0.0.0', port=port)
