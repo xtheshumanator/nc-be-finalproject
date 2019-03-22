@@ -24,7 +24,7 @@ def homeDummy():
 
 @app.route("/encryptFile", methods=['POST'])
 def post_encrypted_file():
-    return encrypt_file(request.files['file'])
+    return encrypt_file(request.files['file'], request.form['bucket_name'])
 
 
 @app.route("/decryptFile", methods=['GET'])

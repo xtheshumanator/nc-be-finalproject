@@ -1,11 +1,12 @@
 import asyncio
 
 import psycopg2
-from flask import send_file
+from flask import send_file, jsonify, json
 from cryptography.fernet import Fernet
 from werkzeug import secure_filename
 import time
 
+import boto3
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
@@ -136,8 +137,20 @@ def create_workspace_only(data):
     workspace_added = False
     connection = None
 
+    #create a bucket to add files to.
+
+    workspace_name = data['name']
+    print(workspace_name)
+    # bucket_name = json.dumps(workspace_name)
+    # print(bucket_name)
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket='%s' % workspace_name)
+    print('hello')
+    response = s3.list_buckets()
+    buckets = [bucket['Name'] for bucket in response['Buckets']]
+    print("Bucket List: %s" % buckets)
+
     try:
-        workspace_name = data['name']
         admin = data['admin'];
         loop = asyncio.new_event_loop()
         admin_id = loop.run_until_complete(get_user_id(admin))
@@ -348,9 +361,11 @@ def delete_user_from_workspace(data):
         return res
 
 
-def encrypt_file(f):
+def encrypt_file(f, bucket_name):
+    print(bucket_name)
     f.save(secure_filename(f.filename))
-
+    s3 = boto3.client('s3')
+    #how to get the bucket_name
 
     try:
 #convert key from 56 into 64
@@ -381,7 +396,9 @@ def encrypt_file(f):
         with open('S3/' + filename, 'wb') as f:
             f.write(encrypted)
 
-        # save encrypted_file to S3
+
+        s3.upload_file(filename, bucket_name, filename)
+        print('Upload complete')
 
     except (Exception, psycopg2.Error) as error:
         print('Error while conecting to PostgresQL', error)
