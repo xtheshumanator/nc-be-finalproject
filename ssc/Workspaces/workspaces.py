@@ -4,6 +4,7 @@ import psycopg2
 from flask import send_file
 from cryptography.fernet import Fernet
 from werkzeug import secure_filename
+import time
 
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
@@ -350,6 +351,7 @@ def delete_user_from_workspace(data):
 def encrypt_file(f):
     f.save(secure_filename(f.filename))
 
+
     try:
 #convert key from 56 into 64
         key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
@@ -359,10 +361,15 @@ def encrypt_file(f):
             database='ssc'
         )
         cursor = connection.cursor()
-        filename = secure_filename(f.filename)
+        actualFile = secure_filename(f.filename)
+        time_stamp = str(time.time())
+        file_start = str(secure_filename(f.filename))[0:-4]
+        file_end = str(secure_filename(f.filename))[-4:]
 
+        filename = (file_start + time_stamp + file_end)
         print(filename)
-        with open(filename, 'rb') as f:
+
+        with open(actualFile, 'rb') as f:
             file = f.read()
 
             print(file)
