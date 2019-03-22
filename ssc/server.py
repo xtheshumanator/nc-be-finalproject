@@ -4,9 +4,7 @@ from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
-from ssc.Workspaces.workspaces import delete_workspace, update_admin, \
-    create_workspace_with_users, create_workspace_only, fetch_workspace_files, \
-    delete_user_from_workspace
+from ssc.Workspaces.workspaces import *
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
 from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.login.get_logged_in import fetch_user_details
@@ -27,9 +25,6 @@ def post_encrypted_file():
 def download_decrypted_file():
     return decrypt_file(request.json)
 
-@app.route("/decryptFile", methods=['GET'])
-def download_decrypted_file():
-    return decrypt_file(request.json)
   
 @app.route('/api/login', methods=['GET'])
 def login():
@@ -182,8 +177,6 @@ def handle_update_workspace(workspace_name):
         return res_json, 404
     else:
         return res_json, 201
-
-      <<<<<<< audio-key-session-api-endpoint
     print(res)
     res_json = {'workspace_admin_updated': res}
     if (res == False): res_json['error'] = 'Could not update workspace. ' \
