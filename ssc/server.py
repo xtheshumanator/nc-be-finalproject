@@ -8,7 +8,7 @@ from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_
 
 from ssc.Workspaces.workspaces import delete_workspace, update_admin, \
     create_workspace_with_users, create_workspace_only, fetch_workspace_files, \
-    delete_user_from_workspace, post_workspace_users
+    delete_user_from_workspace
 
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
 
@@ -21,29 +21,6 @@ app = Flask(__name__, template_folder='testflask/templates')
 def homeDummy():
     return 'Hello'
 
-
-@app.route("/users")
-def usersDummy():
-    return "Hello, Users"
-
-
-@app.route("/deleteUser", methods=['DELETE'])
-def delete_user():
-    return delete_user_from_workspace(request.json)
-
-
-@app.route('/api/login', methods=['GET'])
-def login():
-    username = request.json['username']
-    password = request.json['password']
-    return fetch_user_details(username, password)
-
-
-@app.route("/api/users")
-def get_users():
-    return fetch_users()
-
-
 @app.route("/encryptFile", methods=['POST'])
 def post_encrypted_file():
     return encrypt_file(request.files['file'])
@@ -52,38 +29,66 @@ def post_encrypted_file():
 @app.route("/decryptFile", methods=['GET'])
 def download_decrypted_file():
     return decrypt_file(request.json)
+  
+@app.route('/api/login', methods=['GET'])
+def login():
+    username = request.json['username']
+    password = request.json['password']
+    res = fetch_user_details(username, password)
+    res_json = jsonify(res)
+
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
 
 
-@app.route('/api/workspaces', methods=['POST'])
-def Workspaces_users():
-    return post_workspace_users(request.json)
+@app.route("/api/users")
+def get_users():
+    res = fetch_users()
+    res_json = jsonify(res)
+
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
 
 
 @app.route("/api/users", methods=['POST'])
 def post_user():
     username = request.json['username']
     password = request.json['password']
-    return add_user(username, password)
+    res = add_user(username, password)
+    res_json = jsonify(res)
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 201
 
 
 @app.route('/api/users/<username>', methods=["GET"])
 def get_user_workspaces(username):
-    list_of_workspaces = fetch_user_workspaces(username)
-    return jsonify({'workspaces': list_of_workspaces})
+    res = fetch_user_workspaces(username)
+    res_json = jsonify(res)
+
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
 
 
-@app.route("/api/deleteuser", methods=["DELETE"])
+@app.route("/api/deleteUser", methods=['DELETE'])
 def delete_user():
     if (not request.json) | ('username' not in request.json) | ('admin_username' not in request.json) | (
             'workspace_name' not in request.json):
         abort(400)
 
     res = delete_user_from_workspace(request.json)
-    res_json = {'user_deleted_from_workspace': res}
-    if (res == False): res_json['error'] = 'Could not delete user. ' \
-                                           'Check user is admin or workspace still exists'
-    return jsonify(res_json);
-
+    res_json = jsonify(res)
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 204
 
 @app.route("/api/invites", methods=["POST"])
 def invite_user():
@@ -92,17 +97,21 @@ def invite_user():
         abort(400)
 
     res = insert_user_invite(request.json)
-    res_json = {'user_invited': res}
-    if (res == False): res_json['error'] = 'Could not invite user. ' \
-                                           'Check user is admin or invite still exists'
-    return jsonify(res_json);
+    res_json = jsonify(res)
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 201
 
 
 @app.route("/api/invites/<username>", methods=["GET"])
 def get_user_invites(username):
-    list_of_invites = fetch_user_invites(username)
-    res = {'invites': list_of_invites}
-    return jsonify(res);
+    res = fetch_user_invites(username)
+    res_json = jsonify(res)
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
 
 
 @app.route("/api/invites/<username>", methods=["POST"])
@@ -111,8 +120,11 @@ def update_invite(username):
         abort(400)
 
     res = process_invite(username, request.json)
-    return jsonify({'invitesProcessed': res});
-
+    res_json = jsonify(res);
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 201
 
 @app.route('/api/workspaces', methods=['POST'])
 def handle_create_workspace():
@@ -121,22 +133,14 @@ def handle_create_workspace():
     else:
         if ('users' in request.json):
             res = create_workspace_with_users(request.json)
-            if (res == len(request.json['users'])):
-                res_json = {'workspace_added': True}
-            elif (res != 0):
-                res_json = {'workspace_added': False,
-                            'error': 'Workspace added but not all users added.'}
-            else:
-                res_json = {'workspace_added': False,
-                            'error': 'Workspace could not be added.'}
         else:
             res = create_workspace_only(request.json)
-            if (res):
-                res_json = {'workspace_added': True}
-            else:
-                res_json = {'workspace_added': False,
-                            'error': 'Could not add workspace or set admin.'}
 
+        res_json = jsonify(res);
+        if ("error" in res):
+            return res_json, 404
+        else:
+            return res_json, 201
         return jsonify(res_json);
 
 
@@ -146,17 +150,22 @@ def handle_delete_workspace():
         abort(400)
 
     res = delete_workspace(request.json)
-    res_json = {'workspace_deleted': res}
-    if (res == False): res_json['error'] = 'Could not delete workspace. ' \
-                                           'Check user is admin or workspace still exists'
-    return jsonify(res_json);
+    res_json = jsonify(res)
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 204
 
 
 @app.route("/api/workspaces/<name>", methods=["GET"])
 def get_workspace_file(name):
-    list_of_files = fetch_workspace_files(name)
-    res = {'files': list_of_files}
-    return jsonify(res);
+    res = fetch_workspace_files(name)
+    res_json = jsonify(res);
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
+
 
 
 @app.route("/api/workspaces/<workspace_name>", methods=["PUT"])
@@ -166,13 +175,11 @@ def handle_update_workspace(workspace_name):
         abort(400)
 
     res = update_admin(workspace_name, request.json)
-    print(res)
-    res_json = {'workspace_admin_updated': res}
-    if (res == False): res_json['error'] = 'Could not update workspace. ' \
-                                           'Check admin user is an admin'
-
-    return jsonify(res_json);
-
+    res_json = jsonify(res);
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 201
 
 if __name__ == "__main__":
     # app.run(debug=True)
