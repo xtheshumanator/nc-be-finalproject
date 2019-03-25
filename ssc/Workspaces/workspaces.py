@@ -1,19 +1,22 @@
 import asyncio
 
 import psycopg2
-from flask import send_file
+from flask import send_file, jsonify, json
 from cryptography.fernet import Fernet
 from werkzeug import secure_filename
+import time
 
+import boto3
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
 
 
 def delete_workspace(delete_request):
-    connection=None
+    connection = None
     workspace_deleted = False
-    res={}
+    res = {}
+
     deleted_by = delete_request['deleted_by']
     workspace = delete_request['workspace']
     loop = asyncio.new_event_loop()
@@ -42,7 +45,8 @@ def delete_workspace(delete_request):
                 cursor.execute(delete_workspace_sql, (workspace_id,))
                 connection.commit()
                 count = cursor.rowcount
-                if (count!=0):
+
+                if (count != 0):
                     workspace_deleted = True
 
     except (Exception, psycopg2.Error) as error:
@@ -63,7 +67,8 @@ def delete_workspace(delete_request):
 def update_admin(workspace, admin_request):
     workspace_admin_updated = False
     connection = None
-    res= {}
+
+    res = {}
 
     username = admin_request['username']
     admin_username = admin_request['admin_username']
@@ -121,23 +126,35 @@ def update_admin(workspace, admin_request):
             connection.close()
             print("PostgreSQL connection is closed")
 
-
         res['workspace_admin_updated'] = workspace_admin_updated
         return res
 
 
 def create_workspace_only(data):
-    res={}
+    res = {}
     workspace_added = False
-    connection=None
+    connection = None
+
+    #create a bucket to add files to.
+
+    workspace_name = data['name']
+    print(workspace_name)
+    # bucket_name = json.dumps(workspace_name)
+    # print(bucket_name)
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket='%s' % workspace_name)
+    print('hello')
+    response = s3.list_buckets()
+    buckets = [bucket['Name'] for bucket in response['Buckets']]
+    print("Bucket List: %s" % buckets)
 
     try:
-        workspace_name = data['name']
         admin = data['admin'];
         loop = asyncio.new_event_loop()
         admin_id = loop.run_until_complete(get_user_id(admin))
 
-        if(admin_id==-1):
+        if (admin_id == -1):
+
             res['error'] = 'Could not find user in the system so cannot add workspace for user'
         else:
             connection = psycopg2.connect(
@@ -146,7 +163,6 @@ def create_workspace_only(data):
                 database=database)
 
             insert_workspace_name = "insert into workspaces (name) values (%s) returning workspace_id"
-
 
             cursor = connection.cursor()
             cursor.execute(insert_workspace_name, (workspace_name,))
@@ -158,8 +174,10 @@ def create_workspace_only(data):
             else:
                 new_workspace_id = cursor.fetchone()[0]
                 admin_added = add_user_to_workspace([admin_id], new_workspace_id, True)
-                if(admin_added!=0):
-                    workspace_added=True
+
+                if (admin_added != 0):
+                    workspace_added = True
+
                 else:
                     res['error'] = 'Workspace created but could not set admin. Contact support'
 
@@ -173,7 +191,9 @@ def create_workspace_only(data):
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
-        res['workspace_added']=workspace_added
+
+        res['workspace_added'] = workspace_added
+
         return res
 
 
@@ -181,9 +201,10 @@ def create_workspace_with_users(data):
     users = data['users'];
     admin = data['admin'];
     workspace = data['name'];
-    res={}
-    users_added=False
-    connection=None
+
+    res = {}
+    users_added = False
+    connection = None
 
     try:
         connection = psycopg2.connect(
@@ -214,10 +235,12 @@ def create_workspace_with_users(data):
                     single_user_id = loop.run_until_complete(get_user_id(user['username']))
                     user_id_list.append(single_user_id)
                 users_added = add_user_to_workspace(user_id_list, new_workspace_id);
-                if(users_added!=len(users)):
+
+                if (users_added != len(users)):
                     res['error'] = 'Some users could not be added to workspace. Try again'
                 else:
-                    users_added=True
+                    users_added = True
+
     except (Exception, psycopg2.Error) as error:
         print('Error while conecting to PostgresQL', error)
         res['error'] = str(error)
@@ -260,18 +283,16 @@ def add_user_to_workspace(list_of_ids, workspace_id, is_admin=False):
             connection.close()
             print("PostgresSQL connection is closed")
 
-
     return 'workspace added'
-
 
     return count
 
 
-
 def delete_user_from_workspace(data):
-    res={}
+    res = {}
     user_deleted = False
-    connection=None
+    connection = None
+
     try:
         # check if admin_username is the same as the workspace_admins
         username = data['username']
@@ -324,7 +345,9 @@ def delete_user_from_workspace(data):
 
     except (Exception, psycopg2.Error) as error:
         print('Error while conecting to PostgresQL', error)
-        res['error']=str(error)
+
+        res['error'] = str(error)
+
     finally:
 
         if (connection):
@@ -336,12 +359,14 @@ def delete_user_from_workspace(data):
         return res
 
 
-
-def encrypt_file(f):
+def encrypt_file(f, bucket_name):
+    print(bucket_name)
     f.save(secure_filename(f.filename))
+    s3 = boto3.client('s3')
+    #how to get the bucket_name
 
     try:
-
+#convert key from 56 into 64
         key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
         print(key)
 
@@ -349,10 +374,15 @@ def encrypt_file(f):
             database='ssc'
         )
         cursor = connection.cursor()
-        filename = secure_filename(f.filename)
+        actualFile = secure_filename(f.filename)
+        time_stamp = str(time.time())
+        file_start = str(secure_filename(f.filename))[0:-4]
+        file_end = str(secure_filename(f.filename))[-4:]
 
+        filename = (file_start + time_stamp + file_end)
         print(filename)
-        with open(filename, 'rb') as f:
+
+        with open(actualFile, 'rb') as f:
             file = f.read()
 
             print(file)
@@ -361,10 +391,12 @@ def encrypt_file(f):
             encrypted = fernet.encrypt(file)
             print(encrypted)
 
-        with open('S3/new_encrypted_file', 'wb') as f:
+        with open('S3/' + filename, 'wb') as f:
             f.write(encrypted)
 
-        #save encrypted_file to S3
+
+        s3.upload_file(filename, bucket_name, filename)
+        print('Upload complete')
 
     except (Exception, psycopg2.Error) as error:
         print('Error while conecting to PostgresQL', error)
@@ -379,10 +411,10 @@ def encrypt_file(f):
 
     return 'encrypted'
 
+
 def decrypt_file(data):
-
     filename = data['filename']
-
+    print(filename)
 
     try:
 
@@ -395,7 +427,7 @@ def decrypt_file(data):
         cursor = connection.cursor()
         # filename = secure_filename(f.filename)
 
-        with open('S3/downloads/' + filename, 'rb') as f:
+        with open('S3/' + filename, 'rb') as f:
             file = f.read()
 
             print(file)
@@ -404,14 +436,14 @@ def decrypt_file(data):
             decrypted = fernet.decrypt(file)
             print(decrypted)
 
-        with open('new_decrypted_file', 'wb') as f:
-            f.write(decrypted)
+        with open('Third_test_decrypted.txt', 'wb') as f:
+            print(f.write(decrypted))
 
         # with open('new_decrypted_file', 'rb') as f:
         #     decrypted_file = f.read()
 
     except (Exception, psycopg2.Error) as error:
-        print('Error while conecting to PostgresQL', error)
+        print('Error while connecting to PostgresQL', error)
 
     finally:
 
@@ -421,7 +453,7 @@ def decrypt_file(data):
             connection.close()
             print("PostgresSQL connection is closed")
 
-    return send_file('new_decrypted_file')
+    return send_file('Third_test_decrypted.txt')
 
 
 def fetch_workspace_users(name):
@@ -468,9 +500,10 @@ def fetch_workspace_users(name):
 
 
 def fetch_workspace_files(name):
-    list_of_files=[]
-    res={}
-    connection=None
+    list_of_files = []
+    res = {}
+    connection = None
+
     try:
         connection = psycopg2.connect(
             database="ssc")
@@ -508,4 +541,3 @@ def fetch_workspace_files(name):
             res["error"] = "There are no files in this workspace"
         res["files"] = list_of_files
         return res
-

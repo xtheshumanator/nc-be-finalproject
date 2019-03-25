@@ -4,4 +4,4 @@ __pycache__
 env
 config.py
 dbconfig.py
-audio_analysis/acrconfig.py
+ssc/audio-analysis/acrconfig.py

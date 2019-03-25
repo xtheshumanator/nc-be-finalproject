@@ -28,6 +28,35 @@ create table invites (
 	workspace_id INT REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
 	invited_by_id INT REFERENCES users(user_id) ON DELETE CASCADE);
 
+create table audio_keys (
+    audio_key VARCHAR NOT NULL,
+    session_id VARCHAR NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW());
+
+
+--CREATE OR REPLACE FUNCTION delete_expired_keys() RETURNS trigger AS
+--    $body$
+--
+--    BEGIN
+--    DELETE FROM audio_keys
+--    WHERE created_at < now() - interval '2 minutes';
+--
+--    RETURN NUll;
+--    END;
+--    $body$
+--    LANGUAGE plpgsql VOLATILE;
+--
+--
+--
+--CREATE TRIGGER trigger_delete
+--    BEFORE INSERT
+--    ON audio_keys
+--    FOR EACH ROW
+--    EXECUTE PROCEDURE delete_expired_keys();
+--
+
+
+
 insert into users (username, password)
 values
 ('Coddzilla', 123),
