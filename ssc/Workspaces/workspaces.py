@@ -47,7 +47,7 @@ def delete_workspace(delete_request):
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL", error)
-        res['error']=error
+        res['error']=str(error)
 
     finally:
         # closing database connection.
@@ -497,7 +497,7 @@ def fetch_workspace_files(name):
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL", error)
-        res["error"] = error
+        res["error"] = str(error)
     finally:
         # closing database connection.
         if (connection):
