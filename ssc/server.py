@@ -32,7 +32,7 @@ def download_decrypted_file(workspace_name, file):
     return decrypt_file(workspace_name, file)
 
 
-@app.route('/api/login', methods=['GET'])
+@app.route('/api/login', methods=['POST'])
 def login():
     username = request.json['username']
     password = request.json['password']
