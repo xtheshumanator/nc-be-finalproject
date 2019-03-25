@@ -138,8 +138,6 @@ def create_workspace_only(data):
     workspace_added = False
     connection = None
 
-    #create a bucket to add files to.
-
     workspace_name = data['name']
     print(workspace_name)
     # bucket_name = json.dumps(workspace_name)
