@@ -210,6 +210,8 @@ def post_audio_key():
     session_id = request.values.get("session_id")
     file_name = request.values.get("filename")
     acr_response = identify_audio(audio_file_copy1, sample_bytes)
+    if acr_response["status"]["msg"] == 'No result' and ("isRecorded" in request.values):
+        return jsonify({"recordedNotRecognised": True})
     if acr_response["status"]["msg"] == 'No result':
         acr_upload_response = upload_audio(audio_file_copy2, file_name, session_id)
         add_audio_key(acr_upload_response["acr_id"], session_id)
