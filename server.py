@@ -24,9 +24,9 @@ def post_encrypted_file():
     return encrypt_file(request.files['file'], request.form['bucket_name'])
 
 
-@app.route("/decryptFile/<workspace_name>/<file>", methods=['GET'])
-def download_decrypted_file(workspace_name, file):
-    return decrypt_file(workspace_name, file)
+@app.route("/decryptFile", methods=['GET'])
+def download_decrypted_file():
+    return decrypt_file(request.json)
 
 
 @app.route('/api/login', methods=['POST'])
@@ -198,36 +198,34 @@ def handle_update_workspace(workspace_name):
     return jsonify(res_json);
 
 
-@app.route("/api/audiokey", methods = ["POST"])
-def post_audio_key():
-    if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):
-        abort(400)
-
-    file = request.files["file"].read()
-    audio_file_copy1 = BytesIO(file)
-    audio_file_copy2 = BytesIO(file)
-    sample_bytes = len(file)
-    session_id = request.values.get("session_id")
-    file_name = request.values.get("filename")
-    acr_response = identify_audio(audio_file_copy1, sample_bytes)
-    if acr_response["status"]["msg"] == 'No result' and ("isRecorded" in request.values):
-        return jsonify({"recordedNotRecognised": True})
-    if acr_response["status"]["msg"] == 'No result':
-        acr_upload_response = upload_audio(audio_file_copy2, file_name, session_id)
-        add_audio_key(acr_upload_response["acr_id"], session_id)
-        return jsonify({"notRecognised": True})
-    if 'custom_files' in acr_response["metadata"].keys():
-        return jsonify({"fileError": True})
-    if acr_response["status"]["msg"] == 'Success':
-        add_audio_key(acr_response["metadata"]["music"][0]["acrid"], session_id)
-        return jsonify({"title": acr_response["metadata"]["music"][0]["title"],
-                        "artist": acr_response["metadata"]["music"][0]["artists"][0]["name"]})
-
-    return jsonify('Error check')
-
+# Commenting out for now until ready to add config to heroku
+# @app.route("/api/audiokey", methods = ["POST"])
+# def post_audio_key():
+#     if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):
+#         abort(400)
+#
+#     file = request.files["file"].read()
+#     audio_file_copy1 = BytesIO(file)
+#     audio_file_copy2 = BytesIO(file)
+#     sample_bytes = len(file)
+#     session_id = request.values.get("session_id")
+#     file_name = request.values.get("filename")
+#     acr_response = identify_audio(audio_file_copy1, sample_bytes)
+#     if acr_response["status"]["msg"] == 'No result':
+#         acr_upload_response = upload_audio(audio_file_copy2, file_name, session_id)
+#         add_audio_key(acr_upload_response["acr_id"], session_id)
+#         return jsonify({"notRecognised": True})
+#     if 'custom_files' in acr_response["metadata"].keys():
+#         return jsonify({"fileError": True})
+#     if acr_response["status"]["msg"] == 'Success':
+#         add_audio_key(acr_response["metadata"]["music"][0]["acrid"], session_id)
+#         return jsonify({"title": acr_response["metadata"]["music"][0]["title"],
+#                         "artist": acr_response["metadata"]["music"][0]["artists"][0]["name"]})
+#
+#     return jsonify('Error check')
+#
 
 if __name__ == "__main__":
-    # app.run(debug=True)
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 9090))
     app.run(host='0.0.0.0', port=port)
 
