@@ -3,18 +3,18 @@ import os
 from ssc.Workspaces.workspaces import *
 
 from flask import Flask, jsonify, request, abort
+from flask_cors import CORS
 
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
 
-from ssc.Workspaces.workspaces import delete_workspace, update_admin, \
-    create_workspace_with_users, create_workspace_only, fetch_workspace_files, \
-    delete_user_from_workspace
+from ssc.Workspaces.workspaces import *
 
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
 
 from ssc.login.get_logged_in import fetch_user_details
 
 app = Flask(__name__, template_folder='testflask/templates')
+CORS(app)
 
 
 @app.route("/")
@@ -135,7 +135,7 @@ def handle_create_workspace():
             res = create_workspace_with_users(request.json)
         else:
             res = create_workspace_only(request.json)
-
+        print(res)
         res_json = jsonify(res);
         if ("error" in res):
             return res_json, 404
@@ -157,7 +157,7 @@ def handle_delete_workspace():
         return res_json, 204
 
 
-@app.route("/api/workspaces/<name>", methods=["GET"])
+@app.route("/api/workspaces/<name>/files", methods=["GET"])
 def get_workspace_file(name):
     res = fetch_workspace_files(name)
     res_json = jsonify(res);
@@ -166,6 +166,14 @@ def get_workspace_file(name):
     else:
         return res_json, 200
 
+@app.route("/api/workspaces/<name>/users", methods=["GET"])
+def get_workspace_users(name):
+    res = fetch_workspace_users(name)
+    res_json = jsonify(res);
+    if ("error" in res):
+        return res_json, 404
+    else:
+        return res_json, 200
 
 
 @app.route("/api/workspaces/<workspace_name>", methods=["PUT"])

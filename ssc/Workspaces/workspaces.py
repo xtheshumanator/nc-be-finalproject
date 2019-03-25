@@ -165,7 +165,7 @@ def create_workspace_only(data):
 
     except (Exception, psycopg2.Error) as error:
         print('Error while conecting to PostgresQL', error)
-        res['error'] = error
+        res['error'] = str(error)
     finally:
 
         if (connection):
@@ -422,6 +422,49 @@ def decrypt_file(data):
             print("PostgresSQL connection is closed")
 
     return send_file('new_decrypted_file')
+
+
+def fetch_workspace_users(name):
+    list_of_users=[]
+    res={}
+    connection=None
+    try:
+        connection = psycopg2.connect(
+            database="ssc")
+
+        cursor = connection.cursor()
+        if (name == None):
+            res["error"] = "Workspace name is invalid"
+        else:
+            loop = asyncio.new_event_loop()
+            workspace_id = loop.run_until_complete(get_workspace_id(name))
+            if (workspace_id == -1):
+                res["error"] = "Workspace name is invalid"
+            else:
+                cursor.execute("""SELECT u.username, wu.is_admin FROM workspace_users wu 
+                       INNER JOIN workspaces w ON w.workspace_id = wu.workspace_id
+                       INNER JOIN users u ON wu.user_id=u.user_id
+                       WHERE w.workspace_id = %s
+                       """, (workspace_id,))
+
+                workspace_users = cursor.fetchall()
+                for row in workspace_users:
+                    list_of_users.append(
+                        {'username': row[0], 'is_admin': str(row[1])})
+
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL", error)
+        res["error"] = str(error)
+    finally:
+        # closing database connection.
+        if (connection):
+            cursor.close()
+            connection.close()
+            print("PostgreSQL connection is closed")
+        if ((len(list_of_users) == 0) & ("error" not in res)):
+            res["error"] = "There are no users in this workspace"
+        res["users"] = list_of_users
+        return res
 
 
 def fetch_workspace_files(name):
