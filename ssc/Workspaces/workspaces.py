@@ -1,12 +1,13 @@
 import asyncio
 
 import psycopg2
-from flask import send_file, jsonify, json
+from flask import send_file
 from cryptography.fernet import Fernet
 from werkzeug import secure_filename
 import time
 
 import boto3
+import botocore
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
@@ -135,15 +136,12 @@ def create_workspace_only(data):
     workspace_added = False
     connection = None
 
-    #create a bucket to add files to.
-
     workspace_name = data['name']
     print(workspace_name)
     # bucket_name = json.dumps(workspace_name)
-    # print(bucket_name)
+
     s3 = boto3.client('s3')
     s3.create_bucket(Bucket='%s' % workspace_name)
-    print('hello')
     response = s3.list_buckets()
     buckets = [bucket['Name'] for bucket in response['Buckets']]
     print("Bucket List: %s" % buckets)
@@ -366,9 +364,9 @@ def encrypt_file(f, bucket_name):
     #how to get the bucket_name
 
     try:
-#convert key from 56 into 64
+        #convert key from 56 into 64
+
         key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
-        print(key)
 
         connection = psycopg2.connect(
             database='ssc'
@@ -380,7 +378,7 @@ def encrypt_file(f, bucket_name):
         file_end = str(secure_filename(f.filename))[-4:]
 
         filename = (file_start + time_stamp + file_end)
-        print(filename)
+
 
         with open(actualFile, 'rb') as f:
             file = f.read()
@@ -391,56 +389,13 @@ def encrypt_file(f, bucket_name):
             encrypted = fernet.encrypt(file)
             print(encrypted)
 
-        with open('S3/' + filename, 'wb') as f:
+        with open(filename, 'wb') as f:
             f.write(encrypted)
 
 
         s3.upload_file(filename, bucket_name, filename)
         print('Upload complete')
-
-    except (Exception, psycopg2.Error) as error:
-        print('Error while conecting to PostgresQL', error)
-
-    finally:
-
-        if (connection):
-            # close the connection and the cursor
-            cursor.close()
-            connection.close()
-            print("PostgresSQL connection is closed")
-
-    return 'encrypted'
-
-
-def decrypt_file(data):
-    filename = data['filename']
-    print(filename)
-
-    try:
-
-        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
-        print(key)
-
-        connection = psycopg2.connect(
-            database='ssc'
-        )
-        cursor = connection.cursor()
-        # filename = secure_filename(f.filename)
-
-        with open('S3/' + filename, 'rb') as f:
-            file = f.read()
-
-            print(file)
-
-            fernet = Fernet(key)
-            decrypted = fernet.decrypt(file)
-            print(decrypted)
-
-        with open('Third_test_decrypted.txt', 'wb') as f:
-            print(f.write(decrypted))
-
-        # with open('new_decrypted_file', 'rb') as f:
-        #     decrypted_file = f.read()
+        # boto3.s3.bucketlistresultset.BucketListResultSet
 
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
@@ -453,7 +408,58 @@ def decrypt_file(data):
             connection.close()
             print("PostgresSQL connection is closed")
 
-    return send_file('Third_test_decrypted.txt')
+    return 'encrypted'
+
+
+def decrypt_file(workspace_name, filename):
+
+    s3 = boto3.resource('s3')
+    print(workspace_name, filename)
+
+    connection = None
+    try:
+        s3.Bucket(workspace_name).download_file(filename, 'MondayTest1.txt')
+        print("Download complete")
+
+        connection = psycopg2.connect(
+            database='ssc'
+        )
+
+        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
+        print(key)
+
+
+        cursor = connection.cursor()
+        # file_name = secure_filename(filename.filename)
+
+        with open(filename, 'rb') as f:
+            file = f.read()
+        #
+        #     print('gfqi')
+
+        fernet = Fernet(key)
+        decrypted = fernet.decrypt(file)
+        print(decrypted)
+
+        with open('MondayTest1.txt', 'wb') as f:
+            print(f.write(decrypted))
+
+        # with open('new_decrypted_file', 'rb') as f:
+        # decrypted_file = f.read()
+
+    except (Exception, psycopg2.Error) as error:
+        print('Error while connecting to PostgresQL', error)
+        #error for object does not exist?
+
+    finally:
+
+        if (connection):
+            # close the connection and the cursor
+            cursor.close()
+            connection.close()
+            print("PostgresSQL connection is closed")
+
+        return send_file('MondayTest.txt')
 
 
 def fetch_workspace_users(name):

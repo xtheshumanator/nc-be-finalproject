@@ -24,9 +24,9 @@ def post_encrypted_file():
     return encrypt_file(request.files['file'], request.form['bucket_name'])
 
 
-@app.route("/decryptFile", methods=['GET'])
-def download_decrypted_file():
-    return decrypt_file(request.json)
+@app.route("/decryptFile/<workspace_name>/<file>", methods=['GET'])
+def download_decrypted_file(workspace_name, file):
+    return decrypt_file(workspace_name, file)
 
 
 @app.route('/api/login', methods=['GET'])
@@ -226,6 +226,6 @@ def post_audio_key():
 
 if __name__ == "__main__":
     # app.run(debug=True)
-    port = int(os.environ.get('PORT', 9090))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
