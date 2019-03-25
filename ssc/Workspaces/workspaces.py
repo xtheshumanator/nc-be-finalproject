@@ -141,7 +141,7 @@ def create_workspace_only(data):
     workspace_name = data['name']
     print(workspace_name)
     # bucket_name = json.dumps(workspace_name)
-    # print(bucket_name)
+
     s3 = boto3.client('s3')
     s3.create_bucket(Bucket='%s' % workspace_name)
     response = s3.list_buckets()
