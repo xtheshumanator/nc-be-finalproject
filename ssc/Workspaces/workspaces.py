@@ -10,7 +10,6 @@ import botocore
 import base64
 import os
 
-
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
 
@@ -367,7 +366,6 @@ def encrypt_file(f, bucket_name, audio_key):
     encoded_key = base64.b64encode(key_string)
     res = {}
 
-
     try:
         # convert key from 56 into 64
 
@@ -382,11 +380,9 @@ def encrypt_file(f, bucket_name, audio_key):
         file_start = str(secure_filename(f.filename))[0:-4]
         file_end = str(secure_filename(f.filename))[-4:]
 
-
         filename = (file_start + '-' + time_stamp + '-' + file_end)
 
         print(filename)
-
 
         with open(actualFile, 'rb') as f:
             file = f.read()
@@ -411,7 +407,7 @@ def encrypt_file(f, bucket_name, audio_key):
 
         else:
             add_file_to_workspace = "INSERT INTO workspace_files (workspace_id, file_name) " \
-                                "VALUES (%s, %s) RETURNING *; "
+                                    "VALUES (%s, %s) RETURNING *; "
 
             cursor.execute(add_file_to_workspace, (workspace_id, filename))
             connection.commit()
@@ -422,6 +418,8 @@ def encrypt_file(f, bucket_name, audio_key):
         print('Error while connecting to PostgresQL', error)
 
     finally:
+        os.remove(filename)
+        os.remove(actualFile)
 
         if (connection):
             # close the connection and the cursor
@@ -433,7 +431,6 @@ def encrypt_file(f, bucket_name, audio_key):
 
 
 def decrypt_file(workspace_name, filename, audio_key):
-
     s3 = boto3.resource('s3')
     time_stamp = str(time.time())
     split = filename.split('-')
@@ -443,7 +440,6 @@ def decrypt_file(workspace_name, filename, audio_key):
     encoded_key = base64.b64encode(key_string)
 
     print(encoded_key)
-
 
     connection = None
     try:
@@ -479,11 +475,10 @@ def decrypt_file(workspace_name, filename, audio_key):
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
-            
+
         to_send = send_file(altered)
         os.remove(altered)
         return to_send
-
 
 
 def fetch_workspace_users(name):
