@@ -1,14 +1,14 @@
-import os
 from io import BytesIO
+
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
-from ssc.audiokey_api.audiokey import get_audio_key
-from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
-from ssc.Workspaces.workspaces import *
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
+from ssc.Workspaces.workspaces import *
+from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.audiokey_api.audiokey import add_audio_key
+from ssc.audiokey_api.audiokey import get_audio_key
 from ssc.login.get_logged_in import fetch_user_details
 
 app = Flask(__name__, template_folder = 'testflask/templates')

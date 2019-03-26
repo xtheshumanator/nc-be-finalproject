@@ -3,16 +3,15 @@ import asyncio
 import psycopg2
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id
+from ssc.dbconnection import getDBConnection
 
 
 def fetch_user_invites(username):
-    connection = None
     res = {}
     list_of_invites = []
 
     try:
-        connection = psycopg2.connect(
-            database="ssc")
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         loop = asyncio.new_event_loop()
@@ -47,12 +46,10 @@ def fetch_user_invites(username):
 def process_invite(username, invite_response):
     decision = invite_response['accept']
     workspace = invite_response['workspace']
-    connection = None
     invite_processed = False
     res = {}
     try:
-        connection = psycopg2.connect(
-            database="ssc")
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         get_invite_id_sql = """select i.invite_id, i.user_id,  i.workspace_id
@@ -113,7 +110,6 @@ def process_invite(username, invite_response):
 def insert_user_invite(invite_json):
     user_invited = False
     res = {}
-    connection = None
     username = invite_json['username']
     workspace = invite_json['workspace']
     invited_by = invite_json['invitedBy']
@@ -128,8 +124,7 @@ def insert_user_invite(invite_json):
     workspace_id = loop.run_until_complete(get_workspace_id(workspace))
 
     try:
-        connection = psycopg2.connect(
-            database="ssc")
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         is_inviter_admin_sql = """select * from workspace_users where user_id=%s and 

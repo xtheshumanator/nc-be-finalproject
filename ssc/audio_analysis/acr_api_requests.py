@@ -1,8 +1,9 @@
-import requests
-import time
 import base64
-import hmac
 import hashlib
+import hmac
+import time
+
+import requests
 from ssc.audio_analysis.acrconfig import identify_access_key, identify_access_secret, \
     identify_host, signature_version, account_access_key, account_access_secret, account_host
 
