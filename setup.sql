@@ -19,7 +19,7 @@ create table workspace_users (
 
 create table workspace_files (
 	workspace_id INT REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
-	file_name VARCHAR(42),
+	file_name VARCHAR,
 	audio_key VARCHAR);
 
 create table invites (

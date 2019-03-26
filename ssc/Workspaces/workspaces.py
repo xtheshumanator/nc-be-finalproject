@@ -363,12 +363,9 @@ def encrypt_file(f, bucket_name, audio_key):
     print(bucket_name)
     f.save(secure_filename(f.filename))
     s3 = boto3.client('s3')
-    # how to get the bucket_name
-
     key_string = bytes(audio_key, 'utf-8')
     encoded_key = base64.b64encode(key_string)
-
-    print(encoded_key)
+    res = {}
 
 
     try:
@@ -388,6 +385,8 @@ def encrypt_file(f, bucket_name, audio_key):
 
         filename = (file_start + '-' + time_stamp + '-' + file_end)
 
+        print(filename)
+
 
         with open(actualFile, 'rb') as f:
             file = f.read()
@@ -405,6 +404,20 @@ def encrypt_file(f, bucket_name, audio_key):
         print('Upload complete')
         # boto3.s3.bucketlistresultset.BucketListResultSet
 
+        loop = asyncio.new_event_loop()
+        workspace_id = loop.run_until_complete(get_workspace_id(bucket_name))
+        if (workspace_id == -1):
+            res["error"] = "Workspace name is invalid"
+
+        else:
+            add_file_to_workspace = "INSERT INTO workspace_files (workspace_id, file_name) " \
+                                "VALUES (%s, %s) RETURNING *; "
+
+            cursor.execute(add_file_to_workspace, (workspace_id, filename))
+            connection.commit()
+            # if cursor.rowcount == 0:
+            #     res["error"] = ""
+
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
 
@@ -419,13 +432,17 @@ def encrypt_file(f, bucket_name, audio_key):
     return 'encrypted'
 
 
-def decrypt_file(workspace_name, filename):
+def decrypt_file(workspace_name, filename, audio_key):
 
     s3 = boto3.resource('s3')
     time_stamp = str(time.time())
     split = filename.split('-')
     altered_filename = split[0] + time_stamp + split[2]
     altered = str(split[0] + time_stamp + 'decrypted' + split[2])
+    key_string = bytes(audio_key, 'utf-8')
+    encoded_key = base64.b64encode(key_string)
+
+    print(encoded_key)
 
 
     connection = None
@@ -440,13 +457,13 @@ def decrypt_file(workspace_name, filename):
             password = password
         )
 
-        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtT-T4o='
+        key = encoded_key
         cursor = connection.cursor()
 
         with open(altered_filename, 'rb') as f:
             file = f.read()
             fernet = Fernet(key)
-            decrypted = fernet.decrypt(f)
+            decrypted = fernet.decrypt(file)
 
         with open(altered, 'wb') as f:
             print(f.write(decrypted))

@@ -8,7 +8,7 @@ from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
 from ssc.Workspaces.workspaces import *
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
-# from ssc.audiokey_api.audiokey import add_audio_key
+from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.login.get_logged_in import fetch_user_details
 
 app = Flask(__name__, template_folder = 'testflask/templates')
@@ -42,8 +42,6 @@ def download_decrypted_file(workspace_name, file):
         return jsonify({"notIdentified": True})
     else:
         audio_key = acr_response["metadata"]["music"][0]["acrid"]
-        print(audio_key)
-
         return decrypt_file(workspace_name, file, audio_key)
 
 
@@ -178,8 +176,10 @@ def handle_delete_workspace():
 
 @app.route("/api/workspaces/<name>/files", methods = ["GET"])
 def get_workspace_file(name):
+    print(name)
     res = fetch_workspace_files(name)
-    res_json = jsonify(res);
+    res_json = jsonify(res)
+    print(res)
     if ("error" in res):
         return res_json, 404
     else:
@@ -216,8 +216,6 @@ def handle_update_workspace(workspace_name):
     return jsonify(res_json);
 
 
-rn jsonify('Error check')
-
 @app.route("/api/audiokey", methods = ["POST"])
 def post_audio_key():
     if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):
@@ -244,7 +242,6 @@ def post_audio_key():
                         "artist": acr_response["metadata"]["music"][0]["artists"][0]["name"]})
 
     return jsonify('Error check')
-
 
 
 if __name__ == "__main__":
