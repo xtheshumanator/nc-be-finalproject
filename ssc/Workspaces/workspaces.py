@@ -8,6 +8,8 @@ import time
 import boto3
 import botocore
 import base64
+import os
+
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
@@ -368,6 +370,7 @@ def encrypt_file(f, bucket_name, audio_key):
 
     print(encoded_key)
 
+
     try:
         # convert key from 56 into 64
 
@@ -382,7 +385,9 @@ def encrypt_file(f, bucket_name, audio_key):
         file_start = str(secure_filename(f.filename))[0:-4]
         file_end = str(secure_filename(f.filename))[-4:]
 
-        filename = (file_start + time_stamp + file_end)
+
+        filename = (file_start + '-' + time_stamp + '-' + file_end)
+
 
         with open(actualFile, 'rb') as f:
             file = f.read()
@@ -415,16 +420,18 @@ def encrypt_file(f, bucket_name, audio_key):
 
 
 def decrypt_file(workspace_name, filename):
-    print(filename)
+
     s3 = boto3.resource('s3')
-    print(workspace_name, filename)
-    decrypted = None
+    time_stamp = str(time.time())
+    split = filename.split('-')
+    altered_filename = split[0] + time_stamp + split[2]
+    altered = str(split[0] + time_stamp + 'decrypted' + split[2])
+
 
     connection = None
     try:
 
-        s3.Bucket(workspace_name).download_file(filename, filename)
-
+        s3.Bucket(workspace_name).download_file(filename, altered_filename)
         print("Download complete")
 
         connection = psycopg2.connect(
@@ -433,43 +440,33 @@ def decrypt_file(workspace_name, filename):
             password = password
         )
 
-        key = 'MTNhZTI4MDAxNzM5NGIzZThhZTYxNGY0NmQxMTdjOTI='
-        print(key)
-
+        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtT-T4o='
         cursor = connection.cursor()
-        # file_name = secure_filename(filename.filename)
 
-        # with open(filename, 'rb') as f:
-        #     file = f.read()
-        #
-        #     print('gfqi')
-        with open(filename, 'wb') as f:
-
+        with open(altered_filename, 'rb') as f:
+            file = f.read()
             fernet = Fernet(key)
             decrypted = fernet.decrypt(f)
 
-        with open('file', 'wb') as f:
+        with open(altered, 'wb') as f:
             print(f.write(decrypted))
 
-        # with open('hardinfo_report.txt', 'wb') as f:
-        #     print(f.write(decrypted))
-
-        # with open('new_decrypted_file', 'rb') as f:
-        # decrypted_file = f.read()
-
+        if os.path.exists(altered_filename):
+            os.remove(altered_filename)
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
-        # error for object does not exist?
 
     finally:
 
         if (connection):
-            # close the connection and the cursor
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
+            
+        to_send = send_file(altered)
+        os.remove(altered)
+        return to_send
 
-        return send_file(decrypted, attachment_filename = filename, as_attachment = True)
 
 
 def fetch_workspace_users(name):
