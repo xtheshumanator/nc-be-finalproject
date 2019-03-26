@@ -4,6 +4,7 @@ from passlib.hash import pbkdf2_sha256
 
 
 def fetch_user_details(username, password):
+    print(username)
     res = {}
     password_ok = False
     connection = None
@@ -13,9 +14,12 @@ def fetch_user_details(username, password):
             # password=password,
             database=database)
         cursor = connection.cursor()
-        cursor.execute("SELECT password FROM users WHERE username = %s;", (username,))
+        cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
         encrypted_pw = cursor.fetchone()[0]
+        print(encrypted_pw)
         count = cursor.rowcount
+        print(count)
+
         if (count == 1):
             password_ok = pbkdf2_sha256.verify(password, encrypted_pw)
         else:

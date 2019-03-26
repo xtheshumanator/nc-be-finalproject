@@ -7,7 +7,7 @@ from werkzeug import secure_filename
 import time
 
 import boto3
-import botocore
+import os
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconfig import user, password, database
@@ -52,7 +52,7 @@ def delete_workspace(delete_request):
 
     except (Exception, psycopg2.Error) as error:
         print("Error while connecting to PostgreSQL", error)
-        res['error']=str(error)
+        res['error'] = str(error)
 
     finally:
         # closing database connection.
@@ -361,12 +361,12 @@ def encrypt_file(f, bucket_name):
     print(bucket_name)
     f.save(secure_filename(f.filename))
     s3 = boto3.client('s3')
-    #how to get the bucket_name
+    # how to get the bucket_name
 
     try:
-        #convert key from 56 into 64
+        # convert key from 56 into 64
 
-        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
+        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtT-T4o='
 
         connection = psycopg2.connect(
             database='ssc'
@@ -377,8 +377,7 @@ def encrypt_file(f, bucket_name):
         file_start = str(secure_filename(f.filename))[0:-4]
         file_end = str(secure_filename(f.filename))[-4:]
 
-        filename = (file_start + time_stamp + file_end)
-
+        filename = (file_start + '-' + time_stamp + '-' + file_end)
 
         with open(actualFile, 'rb') as f:
             file = f.read()
@@ -391,7 +390,6 @@ def encrypt_file(f, bucket_name):
 
         with open(filename, 'wb') as f:
             f.write(encrypted)
-
 
         s3.upload_file(filename, bucket_name, filename)
         print('Upload complete')
@@ -412,60 +410,55 @@ def encrypt_file(f, bucket_name):
 
 
 def decrypt_file(workspace_name, filename):
-
     s3 = boto3.resource('s3')
-    print(workspace_name, filename)
+    time_stamp = str(time.time())
+    split = filename.split('-')
+    altered_filename = split[0] + time_stamp + split[2]
+    # original = str(split[0] + split[2])
+    altered = str(split[0] + time_stamp + 'decrypted' + split[2])
 
     connection = None
     try:
-        s3.Bucket(workspace_name).download_file(filename, 'MondayTest1.txt')
+
+        s3.Bucket(workspace_name).download_file(filename, altered_filename)
         print("Download complete")
 
         connection = psycopg2.connect(
             database='ssc'
         )
-
-        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtQ-T4o='
-        print(key)
-
-
+        key = 'rfCFW5NYIJq5qWBLW_bXwHeg4z0PwVM9MDssLtT-T4o='
         cursor = connection.cursor()
-        # file_name = secure_filename(filename.filename)
 
-        with open(filename, 'rb') as f:
+        with open(altered_filename, 'rb') as f:
             file = f.read()
-        #
-        #     print('gfqi')
 
         fernet = Fernet(key)
         decrypted = fernet.decrypt(file)
         print(decrypted)
 
-        with open('MondayTest1.txt', 'wb') as f:
+        with open(altered, 'wb') as f:
             print(f.write(decrypted))
 
-        # with open('new_decrypted_file', 'rb') as f:
-        # decrypted_file = f.read()
-
+        if os.path.exists(altered_filename):
+            os.remove(altered_filename)
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
-        #error for object does not exist?
 
     finally:
 
         if (connection):
-            # close the connection and the cursor
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
-
-        return send_file('MondayTest.txt')
+        to_send = send_file(altered)
+        os.remove(altered)
+        return to_send
 
 
 def fetch_workspace_users(name):
-    list_of_users=[]
-    res={}
-    connection=None
+    list_of_users = []
+    res = {}
+    connection = None
     try:
         connection = psycopg2.connect(
             database="ssc")

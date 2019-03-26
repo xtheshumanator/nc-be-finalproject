@@ -3,11 +3,11 @@ from io import BytesIO
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 
-from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
+# from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
 from ssc.Workspaces.workspaces import *
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
-from ssc.audiokey_api.audiokey import add_audio_key
+# from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.login.get_logged_in import fetch_user_details
 
 app = Flask(__name__, template_folder = 'testflask/templates')
@@ -198,30 +198,30 @@ def handle_update_workspace(workspace_name):
     return jsonify(res_json);
 
 
-@app.route("/api/audiokey", methods = ["POST"])
-def post_audio_key():
-    if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):
-        abort(400)
-
-    file = request.files["file"].read()
-    audio_file_copy1 = BytesIO(file)
-    audio_file_copy2 = BytesIO(file)
-    sample_bytes = len(file)
-    session_id = request.values.get("session_id")
-    file_name = request.values.get("filename")
-    acr_response = identify_audio(audio_file_copy1, sample_bytes)
-    if acr_response["status"]["msg"] == 'No result':
-        acr_upload_response = upload_audio(audio_file_copy2, file_name, session_id)
-        add_audio_key(acr_upload_response["acr_id"], session_id)
-        return jsonify({"notRecognised": True})
-    if 'custom_files' in acr_response["metadata"].keys():
-        return jsonify({"fileError": True})
-    if acr_response["status"]["msg"] == 'Success':
-        add_audio_key(acr_response["metadata"]["music"][0]["acrid"], session_id)
-        return jsonify({"title": acr_response["metadata"]["music"][0]["title"],
-                        "artist": acr_response["metadata"]["music"][0]["artists"][0]["name"]})
-
-    return jsonify('Error check')
+# @app.route("/api/audiokey", methods = ["POST"])
+# def post_audio_key():
+#     if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):
+#         abort(400)
+#
+#     file = request.files["file"].read()
+#     audio_file_copy1 = BytesIO(file)
+#     audio_file_copy2 = BytesIO(file)
+#     sample_bytes = len(file)
+#     session_id = request.values.get("session_id")
+#     file_name = request.values.get("filename")
+#     acr_response = identify_audio(audio_file_copy1, sample_bytes)
+#     if acr_response["status"]["msg"] == 'No result':
+#         acr_upload_response = upload_audio(audio_file_copy2, file_name, session_id)
+#         add_audio_key(acr_upload_response["acr_id"], session_id)
+#         return jsonify({"notRecognised": True})
+#     if 'custom_files' in acr_response["metadata"].keys():
+#         return jsonify({"fileError": True})
+#     if acr_response["status"]["msg"] == 'Success':
+#         add_audio_key(acr_response["metadata"]["music"][0]["acrid"], session_id)
+#         return jsonify({"title": acr_response["metadata"]["music"][0]["title"],
+#                         "artist": acr_response["metadata"]["music"][0]["artists"][0]["name"]})
+#
+#     return jsonify('Error check')
 
 
 if __name__ == "__main__":
