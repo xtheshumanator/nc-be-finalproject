@@ -434,6 +434,7 @@ def decrypt_file(workspace_name, filename, audio_key):
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
+        print(altered)
         if(altered == None):
             return jsonify({"incorrect_key": True})
         else:
