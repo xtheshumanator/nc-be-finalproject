@@ -1,19 +1,17 @@
-import psycopg2
 import asyncio
-from ssc.dbconfig import user, password, database
-from ssc.Invites.invites import get_user_id
+
+import psycopg2
 from passlib.hash import pbkdf2_sha256
+
+from ssc.Invites.invites import get_user_id
+from ssc.dbconnection import getDBConnection
 
 
 def add_user(username, password):
-    connection = None
     user_added = False
     res={}
     try:
-        connection = psycopg2.connect(
-            user=user,
-            password=password,
-            database=database)
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         encrypted_pw = pbkdf2_sha256.hash(password)
@@ -41,12 +39,8 @@ def add_user(username, password):
 def fetch_users():
     res = {}
     list_of_users = []
-    connection = None
     try:
-        connection = psycopg2.connect(
-            user=user,
-            password=password,
-            database=database)
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         cursor.execute("SELECT * FROM users;")
@@ -72,12 +66,8 @@ def fetch_users():
 def fetch_user_workspaces(username):
     res = {}
     list_of_user_workspaces = []
-    connection = None
     try:
-        connection = psycopg2.connect(
-            user=user,
-            password=password,
-            database=database)
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         loop = asyncio.new_event_loop()

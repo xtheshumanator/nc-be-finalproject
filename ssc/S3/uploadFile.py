@@ -1,5 +1,4 @@
 import boto3
-import botocore
 
 # Create an S3 client
 s3 = boto3.client('s3')

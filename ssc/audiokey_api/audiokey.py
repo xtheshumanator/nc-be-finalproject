@@ -1,16 +1,12 @@
 import psycopg2
-from flask import jsonify
-from ssc.dbconfig import user, password, database
-from requests_toolbelt.multipart import decoder
+
+from ssc.dbconnection import getDBConnection
 
 
 def add_audio_key(audio_key, session_id):
     connection = None
     try:
-        connection = psycopg2.connect(
-            user = user,
-            password = password,
-            database = database)
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         add_audio_key_sql = "INSERT INTO audio_keys (audio_key, session_id)" \
@@ -36,10 +32,7 @@ def add_audio_key(audio_key, session_id):
 def get_audio_key(session_id):
     connection = None
     try:
-        connection = psycopg2.connect(
-            user = user,
-            password = password,
-            database = database)
+        connection = getDBConnection()
         cursor = connection.cursor()
 
         get_audio_key_sql = "SELECT audio_key FROM audio_keys " \

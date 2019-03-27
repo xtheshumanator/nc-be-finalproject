@@ -1,17 +1,17 @@
-import os
 from io import BytesIO
+
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
-from ssc.audiokey_api.audiokey import get_audio_key
 
-from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
-from ssc.Workspaces.workspaces import *
 from ssc.Users.users import fetch_users, add_user, fetch_user_workspaces
+from ssc.Workspaces.workspaces import *
+from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.audiokey_api.audiokey import add_audio_key
+from ssc.audiokey_api.audiokey import get_audio_key
 from ssc.login.get_logged_in import fetch_user_details
 
-app = Flask(__name__, template_folder = 'testflask/templates')
+app = Flask(__name__)
 CORS(app)
 
 
@@ -22,17 +22,27 @@ def homeDummy():
 
 @app.route("/api/encryptFile", methods = ['POST'])
 def post_encrypted_file():
-    session_id = request.form["session_id"]
-    key = get_audio_key(session_id)
-    if key:
-        return encrypt_file(request.files['file'], request.form['bucket_name'], key)
-    else:
-        return jsonify({"broke": True})
+    key = get_audio_key(request.form["session_id"])
+    if ("error" in key):
+        return jsonify(key), 404
+    return encrypt_file(request.files['file'], request.form['bucket_name'], key)
 
 
-@app.route("/api/decryptFile/<workspace_name>/<file>", methods = ['GET'])
+@app.route("/api/decryptFile/<workspace_name>/<file>", methods = ['GET', 'POST'])
 def download_decrypted_file(workspace_name, file):
-    return decrypt_file(workspace_name, file)
+    if (not request.files):
+        abort(400)
+
+    audio_file = request.files["file"].read()
+    audio_file_bytes = BytesIO(audio_file)
+    sample_bytes = len(file)
+    acr_response = identify_audio(audio_file_bytes, sample_bytes)
+
+    if acr_response["status"]["msg"] == 'No result':
+        return jsonify({"notIdentified": True})
+    else:
+        audio_key = acr_response["metadata"]["music"][0]["acrid"]
+        return decrypt_file(workspace_name, file, audio_key)
 
 
 @app.route('/api/login', methods = ['POST'])
@@ -75,11 +85,7 @@ def post_user():
 def get_user_workspaces(username):
     res = fetch_user_workspaces(username)
     res_json = jsonify(res)
-
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    return res_json, 200
 
 
 @app.route("/api/deleteUser", methods = ['DELETE'])
@@ -114,10 +120,7 @@ def invite_user():
 def get_user_invites(username):
     res = fetch_user_invites(username)
     res_json = jsonify(res)
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    return res_json, 200
 
 
 @app.route("/api/invites/<username>", methods = ["POST"])
@@ -167,11 +170,8 @@ def handle_delete_workspace():
 @app.route("/api/workspaces/<name>/files", methods = ["GET"])
 def get_workspace_file(name):
     res = fetch_workspace_files(name)
-    res_json = jsonify(res);
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    res_json = jsonify(res)
+    return res_json, 200
 
 
 @app.route("/api/workspaces/<name>/users", methods = ["GET"])
@@ -204,7 +204,6 @@ def handle_update_workspace(workspace_name):
     return jsonify(res_json);
 
 
-# Commenting out for now until ready to add config to heroku
 @app.route("/api/audiokey", methods = ["POST"])
 def post_audio_key():
     if (not request.files) | ("session_id" not in request.values) | ("filename" not in request.values):

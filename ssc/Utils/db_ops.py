@@ -1,14 +1,13 @@
-import psycopg2
 import aiopg
+import psycopg2
+from ssc.dbconnection import getAsyncConn
 
-
-from ssc.dbconfig import dsn
 
 
 async def get_user_id(username):
     connection = None
     try:
-        pool = await aiopg.create_pool(dsn)
+        pool = await aiopg.create_pool(getAsyncConn())
         async with pool.acquire() as connection:
             async with connection.cursor() as cursor:
                 get_user_id_sql = "select user_id from users where username=%s"
@@ -31,7 +30,7 @@ async def get_user_id(username):
 async def is_user_admin(user_id, workspace_id):
     connection = None
     try:
-        pool = await aiopg.create_pool(dsn)
+        pool = await aiopg.create_pool(getAsyncConn())
         async with pool.acquire() as connection:
             async with connection.cursor() as cursor:
                 is_user_admin_sql = "select * from workspace_users where user_id=%s " \
@@ -55,7 +54,7 @@ async def get_workspace_id(workspace):
     connection = None
 
     try:
-        pool = await aiopg.create_pool(dsn)
+        pool = await aiopg.create_pool(getAsyncConn())
         async with pool.acquire() as connection:
             async with connection.cursor() as cursor:
                 get_workspace_id_sql = "select workspace_id from workspaces where name=%s"

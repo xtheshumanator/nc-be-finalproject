@@ -1,21 +1,19 @@
 import asyncio
-
-import psycopg2
-from flask import send_file
-from cryptography.fernet import Fernet
-from werkzeug import secure_filename
-import time
-import boto3
-import botocore
 import base64
 import os
+import time
+
+import boto3
+import psycopg2
+from cryptography.fernet import Fernet
+from flask import send_file
+from werkzeug import secure_filename
 
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
-from ssc.dbconfig import user, password, database
+from ssc.dbconnection import getDBConnection
 
 
 def delete_workspace(delete_request):
-    connection = None
     workspace_deleted = False
     res = {}
 
@@ -31,10 +29,7 @@ def delete_workspace(delete_request):
         if (workspace_id == -1 | deleted_by_id == -1):
             res['error'] = 'Could not locate workspace or user deleting the workspace'
         else:
-            connection = psycopg2.connect(
-                user = user,
-                password = password,
-                database = database)
+            connection = getDBConnection()
             cursor = connection.cursor()
 
             loop = asyncio.new_event_loop()
@@ -68,8 +63,6 @@ def delete_workspace(delete_request):
 
 def update_admin(workspace, admin_request):
     workspace_admin_updated = False
-    connection = None
-
     res = {}
 
     username = admin_request['username']
@@ -90,10 +83,7 @@ def update_admin(workspace, admin_request):
         if (workspace_id == -1 | admin_id == -1 | user_id == -1):
             res['error'] = 'Invalid input. Check username, admin and workspace are correct'
         else:
-            connection = psycopg2.connect(
-                user = user,
-                password = password,
-                database = database)
+            connection = getDBConnection()
             cursor = connection.cursor()
 
             loop = asyncio.new_event_loop()
@@ -135,17 +125,14 @@ def update_admin(workspace, admin_request):
 def create_workspace_only(data):
     res = {}
     workspace_added = False
-    connection = None
 
     workspace_name = data['name']
-    print(workspace_name)
-    # bucket_name = json.dumps(workspace_name)
 
     s3 = boto3.client('s3')
     s3.create_bucket(Bucket = '%s' % workspace_name)
     response = s3.list_buckets()
     buckets = [bucket['Name'] for bucket in response['Buckets']]
-    print("Bucket List: %s" % buckets)
+
 
     try:
         admin = data['admin'];
@@ -156,10 +143,7 @@ def create_workspace_only(data):
 
             res['error'] = 'Could not find user in the system so cannot add workspace for user'
         else:
-            connection = psycopg2.connect(
-                user = user,
-                password = password,
-                database = database)
+            connection = getDBConnection()
 
             insert_workspace_name = "insert into workspaces (name) values (%s) returning workspace_id"
 
@@ -203,11 +187,9 @@ def create_workspace_with_users(data):
 
     res = {}
     users_added = False
-    connection = None
 
     try:
-        connection = psycopg2.connect(
-            database = database)
+        connection = getDBConnection()
 
         cursor = connection.cursor()
 
@@ -256,10 +238,7 @@ def create_workspace_with_users(data):
 
 def add_user_to_workspace(list_of_ids, workspace_id, is_admin = False):
     try:
-        connection = psycopg2.connect(
-            user = user,
-            password = password,
-            database = database)
+        connection = getDBConnection()
 
         cursor = connection.cursor()
         insert_user_to_workspace_sql = "insert into workspace_users (user_id, workspace_id, is_admin) " \
@@ -290,7 +269,6 @@ def add_user_to_workspace(list_of_ids, workspace_id, is_admin = False):
 def delete_user_from_workspace(data):
     res = {}
     user_deleted = False
-    connection = None
 
     try:
         # check if admin_username is the same as the workspace_admins
@@ -298,10 +276,7 @@ def delete_user_from_workspace(data):
         admin_username = data['admin_username']
         workspace_name = data['workspace_name']
 
-        connection = psycopg2.connect(
-            user = user,
-            password = password,
-            database = database)
+        connection = getDBConnection()
 
         cursor = connection.cursor()
         select_user = "select user_id from users where username = (%s)"
@@ -359,7 +334,7 @@ def delete_user_from_workspace(data):
 
 
 def encrypt_file(f, bucket_name, audio_key):
-    print(bucket_name)
+
     f.save(secure_filename(f.filename))
     s3 = boto3.client('s3')
     key_string = bytes(audio_key, 'utf-8')
@@ -371,9 +346,7 @@ def encrypt_file(f, bucket_name, audio_key):
 
         key = encoded_key
 
-        connection = psycopg2.connect(
-            database = 'ssc'
-        )
+        connection = getDBConnection()
         cursor = connection.cursor()
         actualFile = secure_filename(f.filename)
         time_stamp = str(time.time())
@@ -382,23 +355,17 @@ def encrypt_file(f, bucket_name, audio_key):
 
         filename = (file_start + '-' + time_stamp + '-' + file_end)
 
-        print(filename)
 
         with open(actualFile, 'rb') as f:
             file = f.read()
 
-            # print(file)
-
             fernet = Fernet(key)
             encrypted = fernet.encrypt(file)
-            # print(encrypted)
 
         with open(filename, 'wb') as f:
             f.write(encrypted)
 
         s3.upload_file(filename, bucket_name, filename)
-        print('Upload complete')
-        # boto3.s3.bucketlistresultset.BucketListResultSet
 
         loop = asyncio.new_event_loop()
         workspace_id = loop.run_until_complete(get_workspace_id(bucket_name))
@@ -427,7 +394,7 @@ def encrypt_file(f, bucket_name, audio_key):
             connection.close()
             print("PostgresSQL connection is closed")
 
-    return 'encrypted'
+        return 'encrypted'
 
 
 def decrypt_file(workspace_name, filename, audio_key):
@@ -439,19 +406,11 @@ def decrypt_file(workspace_name, filename, audio_key):
     key_string = bytes(audio_key, 'utf-8')
     encoded_key = base64.b64encode(key_string)
 
-    print(encoded_key)
-
-    connection = None
     try:
 
         s3.Bucket(workspace_name).download_file(filename, altered_filename)
-        print("Download complete")
 
-        connection = psycopg2.connect(
-            database = 'ssc',
-            user = user,
-            password = password
-        )
+        connection = getDBConnection()
 
         key = encoded_key
         cursor = connection.cursor()
@@ -484,10 +443,9 @@ def decrypt_file(workspace_name, filename, audio_key):
 def fetch_workspace_users(name):
     list_of_users = []
     res = {}
-    connection = None
+
     try:
-        connection = psycopg2.connect(
-            database = "ssc")
+        connection = getDBConnection()
 
         cursor = connection.cursor()
         if (name == None):
@@ -527,11 +485,9 @@ def fetch_workspace_users(name):
 def fetch_workspace_files(name):
     list_of_files = []
     res = {}
-    connection = None
 
     try:
-        connection = psycopg2.connect(
-            database = "ssc")
+        connection = getDBConnection()
 
         cursor = connection.cursor()
         if (name == None):
