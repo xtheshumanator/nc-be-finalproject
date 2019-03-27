@@ -9,6 +9,8 @@ from cryptography.fernet import Fernet
 from flask import send_file
 from werkzeug import secure_filename
 
+from flask import jsonify
+
 from ssc.Utils.db_ops import get_workspace_id, get_user_id, is_user_admin
 from ssc.dbconnection import getDBConnection
 
@@ -427,17 +429,17 @@ def decrypt_file(workspace_name, filename, audio_key):
             os.remove(altered_filename)
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
-
     finally:
-
         if (connection):
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
-
-        to_send = send_file(altered)
-        os.remove(altered)
-        return to_send
+        if(altered == None):
+            return jsonify({"incorrect_key": True})
+        else:
+            to_send = send_file(altered)
+            os.remove(altered)
+            return to_send
 
 
 def fetch_workspace_users(name):

@@ -10,6 +10,8 @@ from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.audiokey_api.audiokey import get_audio_key
 from ssc.login.get_logged_in import fetch_user_details
+from ssc.Utils.info import api_info
+
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +20,10 @@ CORS(app)
 @app.route("/")
 def homeDummy():
     return 'Hello'
+
+@app.route("/api")
+def getApiInfo():
+    return jsonify(api_info)
 
 
 @app.route("/api/encryptFile", methods = ['POST'])
@@ -58,7 +64,7 @@ def login():
         return res_json, 200
 
 
-@app.route("/api/users")
+@app.route("/api/users", methods = ['GET'])
 def get_users():
     res = fetch_users()
     res_json = jsonify(res)
