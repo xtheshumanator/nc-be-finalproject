@@ -427,6 +427,10 @@ def decrypt_file(workspace_name, filename, audio_key):
 
         if os.path.exists(altered_filename):
             os.remove(altered_filename)
+
+        to_send = send_file(altered)
+        os.remove(altered)
+
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
     except:
@@ -439,8 +443,6 @@ def decrypt_file(workspace_name, filename, audio_key):
         if(generic_error==1):
             return jsonify({"incorrect_key": True})
         else:
-            to_send = send_file(altered)
-            os.remove(altered)
             return to_send
 
 
