@@ -440,7 +440,7 @@ def decrypt_file(workspace_name, filename, audio_key):
             connection.close()
             print("PostgresSQL connection is closed")
         if(generic_error==1):
-            return {"incorrect_key": True}
+            return False
         else:
             to_send = send_file(altered)
             os.remove(altered)

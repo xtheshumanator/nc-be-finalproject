@@ -49,8 +49,8 @@ def download_decrypted_file(workspace_name, file):
     else:
         audio_key = acr_response["metadata"]["music"][0]["acrid"]
         res = decrypt_file(workspace_name, file, audio_key)
-        if ("incorrect_key" in res):
-            return abort(404)
+        if (res == False):
+            abort(404)
         else:
             return res, 200
 
