@@ -47,7 +47,11 @@ def download_decrypted_file(workspace_name, file):
     if acr_response["status"]["msg"] == 'No result':
         abort(404)
     else:
-        audio_key = acr_response["metadata"]["music"][0]["acrid"]
+        if ("music" in acr_response["metadata"]):
+            audio_key = acr_response["metadata"]["music"][0]["acrid"]
+        else:
+            audio_key = acr_response["metadata"]["custom_files"][0]["acrid"]
+
         res = decrypt_file(workspace_name, file, audio_key)
         if (res == False):
             abort(404)
