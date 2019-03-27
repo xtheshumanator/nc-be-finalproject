@@ -407,7 +407,7 @@ def decrypt_file(workspace_name, filename, audio_key):
     altered = str(split[0] + time_stamp + 'decrypted' + split[2])
     key_string = bytes(audio_key, 'utf-8')
     encoded_key = base64.b64encode(key_string)
-
+    generic_error=None
     try:
 
         s3.Bucket(workspace_name).download_file(filename, altered_filename)
@@ -429,13 +429,14 @@ def decrypt_file(workspace_name, filename, audio_key):
             os.remove(altered_filename)
     except (Exception, psycopg2.Error) as error:
         print('Error while connecting to PostgresQL', error)
+    except:
+        generic_error=1
     finally:
         if (connection):
             cursor.close()
             connection.close()
             print("PostgresSQL connection is closed")
-        print(altered)
-        if(altered == None):
+        if(generic_error==1):
             return jsonify({"incorrect_key": True})
         else:
             to_send = send_file(altered)
