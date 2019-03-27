@@ -11,7 +11,7 @@ from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.audiokey_api.audiokey import get_audio_key
 from ssc.login.get_logged_in import fetch_user_details
 
-app = Flask(__name__, template_folder = 'testflask/templates')
+app = Flask(__name__)
 CORS(app)
 
 
@@ -85,11 +85,7 @@ def post_user():
 def get_user_workspaces(username):
     res = fetch_user_workspaces(username)
     res_json = jsonify(res)
-
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    return res_json, 200
 
 
 @app.route("/api/deleteUser", methods = ['DELETE'])
@@ -124,10 +120,7 @@ def invite_user():
 def get_user_invites(username):
     res = fetch_user_invites(username)
     res_json = jsonify(res)
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    return res_json, 200
 
 
 @app.route("/api/invites/<username>", methods = ["POST"])
@@ -176,14 +169,9 @@ def handle_delete_workspace():
 
 @app.route("/api/workspaces/<name>/files", methods = ["GET"])
 def get_workspace_file(name):
-    print(name)
     res = fetch_workspace_files(name)
     res_json = jsonify(res)
-    print(res)
-    if ("error" in res):
-        return res_json, 404
-    else:
-        return res_json, 200
+    return res_json, 200
 
 
 @app.route("/api/workspaces/<name>/users", methods = ["GET"])
@@ -245,6 +233,5 @@ def post_audio_key():
 
 
 if __name__ == "__main__":
-    # app.run(debug=True)
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 9090))
     app.run(host = '0.0.0.0', port = port)
