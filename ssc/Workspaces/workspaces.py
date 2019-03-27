@@ -406,7 +406,6 @@ def decrypt_file(workspace_name, filename, audio_key):
     key_string = bytes(audio_key, 'utf-8')
     encoded_key = base64.b64encode(key_string)
     generic_error=None
-    to_send=None
     try:
 
         s3.Bucket(workspace_name).download_file(filename, altered_filename)
