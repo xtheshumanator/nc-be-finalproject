@@ -50,7 +50,7 @@ def download_decrypted_file(workspace_name, file):
         audio_key = acr_response["metadata"]["music"][0]["acrid"]
         res = decrypt_file(workspace_name, file, audio_key)
         if ("incorrect_key" in res):
-            return res, 404
+            return jsonify(res), 404
         else:
             return res, 200
 
