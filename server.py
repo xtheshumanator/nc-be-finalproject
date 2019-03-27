@@ -45,7 +45,7 @@ def download_decrypted_file(workspace_name, file):
     acr_response = identify_audio(audio_file_bytes, sample_bytes)
 
     if acr_response["status"]["msg"] == 'No result':
-        return jsonify({"notIdentified": True})
+        abort(404)
     else:
         audio_key = acr_response["metadata"]["music"][0]["acrid"]
         return decrypt_file(workspace_name, file, audio_key)
