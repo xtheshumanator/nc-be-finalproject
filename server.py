@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, redirect
 from flask_cors import CORS
 
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
@@ -18,8 +18,8 @@ CORS(app)
 
 
 @app.route("/")
-def homeDummy():
-    return 'Hello'
+def handleHome():
+     return redirect("https://ssc-be.herokuapp.com/api")
 
 @app.route("/api")
 def getApiInfo():

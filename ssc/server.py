@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, redirect
 from flask_cors import CORS
 
 from ssc.Invites.invites import fetch_user_invites, process_invite, insert_user_invite
@@ -10,14 +10,20 @@ from ssc.audio_analysis.acr_api_requests import identify_audio, upload_audio
 from ssc.audiokey_api.audiokey import add_audio_key
 from ssc.audiokey_api.audiokey import get_audio_key
 from ssc.login.get_logged_in import fetch_user_details
+from ssc.Utils.info import api_info
+
 
 app = Flask(__name__)
 CORS(app)
 
 
 @app.route("/")
-def homeDummy():
-    return 'Hello'
+def handleHome():
+     return redirect("https://ssc-be.herokuapp.com/api")
+
+@app.route("/api")
+def getApiInfo():
+    return jsonify(api_info)
 
 
 @app.route("/api/encryptFile", methods = ['POST'])
@@ -39,10 +45,18 @@ def download_decrypted_file(workspace_name, file):
     acr_response = identify_audio(audio_file_bytes, sample_bytes)
 
     if acr_response["status"]["msg"] == 'No result':
-        return jsonify({"notIdentified": True})
+        abort(404)
     else:
-        audio_key = acr_response["metadata"]["music"][0]["acrid"]
-        return decrypt_file(workspace_name, file, audio_key)
+        if ("music" in acr_response["metadata"]):
+            audio_key = acr_response["metadata"]["music"][0]["acrid"]
+        else:
+            audio_key = acr_response["metadata"]["custom_files"][0]["acrid"]
+
+        res = decrypt_file(workspace_name, file, audio_key)
+        if (res == False):
+            abort(404)
+        else:
+            return res, 200
 
 
 @app.route('/api/login', methods = ['POST'])
@@ -58,7 +72,7 @@ def login():
         return res_json, 200
 
 
-@app.route("/api/users")
+@app.route("/api/users", methods = ['GET'])
 def get_users():
     res = fetch_users()
     res_json = jsonify(res)
