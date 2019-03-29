@@ -1,6 +1,6 @@
-# SecureSoniCryptor (SSC) Back End
+# Cryptovox Back End
 
-This is the back end API service for the SecureSoniCryptor; a secure file sharing app that uses audio to encrypt file.
+This is the back end API service for Cryptovox; a secure file sharing app that uses audio to encrypt file.
 
 To see what APIs are supported click [here](https://ssc-be.herokuapp.com/).
 
@@ -11,7 +11,7 @@ To see what APIs are supported click [here](https://ssc-be.herokuapp.com/).
 The following are required to use the app:
 1. Python 3.7 with pip and Pycharm (or another appropriate alternative IDE).
 2. AWS S3 account (the key and secret): this will be used to create workspaces and save encrypted files in workspaces. As long as the keys (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY) are in your environment variables, the AWS library will use this.
-3. ACR account (the key and secret): this will be used to get the audio metadata which will be used for the audio analysis. See the acrconfig.py file for the data you'll need from your ACR account. 
+3. ACR account (the key and secret): this will be used to get the audio metadata which will be used for the audio analysis. See the acrconfig.py file (audio_analysis folder) for the data you'll need from your ACR account. 
 4. Postgres for the database.
 
 ### Installing
