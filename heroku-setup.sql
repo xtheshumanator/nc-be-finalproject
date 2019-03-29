@@ -1,3 +1,10 @@
+drop table workspace_users;
+drop table workspace_files;
+drop table invites;
+drop table audio_keys;
+drop table users;
+drop table workspaces;
+
 create table users (
 	user_id SERIAL PRIMARY KEY,
 	username VARCHAR UNIQUE,
@@ -21,7 +28,8 @@ create table invites (
 	invite_id SERIAL PRIMARY KEY,
 	user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
 	workspace_id INT REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
-	invited_by_id INT REFERENCES users(user_id) ON DELETE CASCADE);
+	invited_by_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+	UNIQUE (user_id,workspace_id));
 
 create table audio_keys (
     audio_key VARCHAR NOT NULL,
