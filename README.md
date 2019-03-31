@@ -1,5 +1,7 @@
 # Cryptovox Back End
 
+_**PLEASE NOTE: due to a limited AWS account, the back-end is available on demand. Pls reach out to if you'd like a demo.**_
+
 This is the back end API service for Cryptovox; a secure file sharing app that uses audio to encrypt file.
 
 To see what APIs are supported click [here](https://ssc-be.herokuapp.com/).
